@@ -1,3 +1,4 @@
+
 import { AppData, Department, Employee, EmployeeStatus, LeaveRequest, LeaveType, RequestStatus, VacationPlan, Notification, AccessLevel } from '../types';
 
 // Initial Mock Data
@@ -65,6 +66,34 @@ class MockDataService {
       return user;
     }
     return null;
+  }
+
+  registerAdmin(firstName: string, lastName: string, email: string, password: string): Employee | null {
+    // Check if email already exists
+    if (this.data.employees.find(e => e.email.toLowerCase() === email.toLowerCase())) {
+        return null;
+    }
+
+    const newAdmin: Employee = {
+        id: `admin-${Date.now()}`,
+        firstName,
+        lastName,
+        email,
+        password,
+        accessLevel: AccessLevel.ADMIN,
+        role: 'Administrador do Sistema',
+        departmentId: '', // Can be assigned later
+        joinDate: new Date().toISOString(),
+        salary: 0,
+        status: EmployeeStatus.ACTIVE,
+        avatarUrl: `https://ui-avatars.com/api/?name=${firstName}+${lastName}&background=0ea5e9&color=fff`,
+        mustChangePassword: false, // Password set during registration is considered secure enough for demo, or set true to force change
+        // Defaults
+        sex: 'M', nuti: '', careerCategory: 'Administração', academicLevel: '', contractType: 'Efectivo', birthDate: '', isLeadership: true, leadershipRole: 'Admin', phone: '', documents: {}
+    };
+
+    this.data.employees.push(newAdmin);
+    return newAdmin;
   }
 
   generateCredentials(employeeId: string, customPassword?: string): boolean {

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './views/Dashboard';
@@ -7,6 +8,7 @@ import Vacations from './views/Vacations';
 import Reports from './views/Reports';
 import AIAssistant from './views/AIAssistant';
 import Login from './views/Login';
+import LandingPage from './views/LandingPage';
 import { ViewState, AppData, Employee, RequestStatus, Department, LeaveRequest, VacationPlan } from './types';
 import { mockService } from './services/mockDataService';
 import { Menu, Bell } from 'lucide-react';
@@ -17,6 +19,10 @@ const App: React.FC = () => {
   const [data, setData] = useState<AppData>(mockService.getData());
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  
+  // New States for Routing/Auth Flow
+  const [showLanding, setShowLanding] = useState(true);
+  const [authMode, setAuthMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
 
   // Load data and check notifications on mount
   useEffect(() => {
@@ -38,11 +44,13 @@ const App: React.FC = () => {
 
   const handleLoginSuccess = (user: Employee) => {
       setCurrentUser(user);
+      setShowLanding(false);
       setCurrentView(ViewState.DASHBOARD);
   };
 
   const handleLogout = () => {
       setCurrentUser(null);
+      setShowLanding(true); // Go back to landing page
   };
 
   // --- Wrappers for Service Calls ---
@@ -155,15 +163,28 @@ const App: React.FC = () => {
     }
   };
 
-  // If not logged in, show Login Screen
+  // 1. Show Landing Page if not logged in and not in Auth mode
+  if (showLanding && !currentUser) {
+      return (
+        <LandingPage 
+            onLoginClick={() => { setAuthMode('LOGIN'); setShowLanding(false); }}
+            onRegisterClick={() => { setAuthMode('REGISTER'); setShowLanding(false); }}
+        />
+      );
+  }
+
+  // 2. Show Login/Register Screen
   if (!currentUser) {
       return <Login 
         onLogin={checkLogin} 
         onChangePassword={handlePasswordChange}
         onLoginSuccess={handleLoginSuccess}
+        initialMode={authMode}
+        onBackToLanding={() => setShowLanding(true)}
       />;
   }
 
+  // 3. Show Authenticated App
   const unreadCount = data.notifications.filter(n => !n.read).length;
 
   return (
