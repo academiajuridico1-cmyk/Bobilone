@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ViewState, AccessLevel, Employee } from '../types';
 import { 
@@ -8,7 +9,8 @@ import {
   BarChart3, 
   Bot,
   LogOut,
-  UserCircle
+  UserCircle,
+  TrendingUp
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -47,6 +49,12 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, currentUser, on
       visible: true
     },
     { 
+      id: ViewState.EVOLUTION,
+      label: 'Evolução',
+      icon: TrendingUp,
+      visible: true
+    },
+    { 
       id: ViewState.REPORTS, 
       label: 'Relatórios', 
       icon: BarChart3,
@@ -70,7 +78,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, currentUser, on
         <h1 className="text-xl font-bold tracking-tight">Gestão de RH</h1>
       </div>
 
-      <nav className="flex-1 py-6 px-3 space-y-1">
+      <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto scrollbar-hide">
         {menuItems.filter(i => i.visible).map((item) => {
           const Icon = item.icon;
           const isActive = currentView === item.id;

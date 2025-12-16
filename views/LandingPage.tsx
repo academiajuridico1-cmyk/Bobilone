@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Users, FileText, Calendar, BarChart3, Fingerprint, Shield } from 'lucide-react';
+import { Users, FileText, Calendar, BarChart3, Fingerprint, Shield, Menu } from 'lucide-react';
 
 interface LandingPageProps {
   onLoginClick: () => void;
@@ -8,24 +8,47 @@ interface LandingPageProps {
 }
 
 const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onRegisterClick }) => {
+  
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="font-[Poppins] bg-[#f4f6f8] text-[#333] min-h-screen flex flex-col">
       
       {/* Cabeçalho */}
-      <header className="bg-[#0a7cff] text-white py-5 px-6 md:px-10 flex justify-between items-center shadow-md">
-        <h1 className="text-2xl font-semibold">Gestão RH</h1>
+      <header className="bg-[#0a7cff] text-white py-5 px-6 md:px-10 flex justify-between items-center shadow-md sticky top-0 z-50">
+        <h1 className="text-2xl font-semibold cursor-pointer" onClick={scrollToTop}>Gestão RH</h1>
+        
+        {/* Desktop Nav */}
         <nav className="hidden md:flex items-center">
-          <a href="#" className="text-white ml-5 no-underline font-medium hover:opacity-80 transition-opacity">Início</a>
-          <a href="#funcionalidades" className="text-white ml-5 no-underline font-medium hover:opacity-80 transition-opacity">Funcionalidades</a>
+          <button onClick={scrollToTop} className="text-white ml-5 bg-transparent border-none font-medium hover:opacity-80 transition-opacity cursor-pointer">Início</button>
+          <button onClick={() => scrollToSection('funcionalidades')} className="text-white ml-5 bg-transparent border-none font-medium hover:opacity-80 transition-opacity cursor-pointer">Funcionalidades</button>
           <button 
             onClick={onLoginClick}
-            className="text-white ml-5 no-underline font-medium hover:opacity-80 transition-opacity bg-transparent border-none cursor-pointer"
+            className="text-white ml-5 bg-transparent border-none font-medium hover:opacity-80 transition-opacity cursor-pointer"
           >
             Entrar
           </button>
         </nav>
-        {/* Mobile Menu Button Placeholder - keeping it simple as per request */}
-        <button onClick={onLoginClick} className="md:hidden text-white font-medium">Entrar</button>
+
+        {/* Mobile Nav */}
+        <div className="md:hidden flex items-center gap-4">
+           <button onClick={() => scrollToSection('funcionalidades')} className="text-white text-sm font-medium hover:opacity-80 bg-transparent border-none cursor-pointer">Funcionalidades</button>
+           <button 
+            onClick={onLoginClick} 
+            className="text-[#0a7cff] bg-white px-3 py-1.5 rounded-full text-sm font-bold shadow-sm border-none cursor-pointer"
+           >
+             Entrar
+           </button>
+        </div>
       </header>
 
       {/* Hero */}
@@ -43,7 +66,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onRegisterClick
       </section>
 
       {/* Seção Funcionalidades */}
-      <section id="funcionalidades" className="py-16 px-6 md:px-10 max-w-[1200px] mx-auto w-full flex-grow">
+      <section id="funcionalidades" className="py-16 px-6 md:px-10 max-w-[1200px] mx-auto w-full flex-grow scroll-mt-20">
         <h3 className="text-center mb-10 text-[28px] font-semibold text-[#333]">Funcionalidades Principais</h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

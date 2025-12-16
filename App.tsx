@@ -6,6 +6,7 @@ import Employees from './views/Employees';
 import Departments from './views/Departments';
 import Vacations from './views/Vacations';
 import Reports from './views/Reports';
+import Evolution from './views/Evolution';
 import AIAssistant from './views/AIAssistant';
 import Login from './views/Login';
 import LandingPage from './views/LandingPage';
@@ -152,6 +153,13 @@ const App: React.FC = () => {
                 onAddPlan={handleAddPlan}
                 onUpdatePlan={handleUpdatePlan}
                 onDeletePlan={handleDeletePlan}
+            />
+        );
+      case ViewState.EVOLUTION:
+        return (
+            <Evolution 
+               data={data}
+               currentUser={currentUser}
             />
         );
       case ViewState.REPORTS:

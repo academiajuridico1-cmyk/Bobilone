@@ -1,6 +1,8 @@
+
+
 import React, { useState, useEffect } from 'react';
-import { AppData, Employee, EmployeeStatus, AccessLevel } from '../types';
-import { Search, Plus, Filter, MoreHorizontal, Mail, Phone, X, Upload, Save, User, Calendar, FileText, Pencil, Trash2, KeyRound, Shield, Eye, Send, Lock, RefreshCw, Camera, Download, Briefcase } from 'lucide-react';
+import { AppData, Employee, EmployeeStatus, AccessLevel, EvolutionType, EvolutionRecord } from '../types';
+import { Search, Plus, Filter, MoreHorizontal, Mail, Phone, X, Upload, Save, User, Calendar, FileText, Pencil, Trash2, KeyRound, Shield, Eye, Send, Lock, RefreshCw, Camera, Download, Briefcase, History, MapPin, Users, TrendingUp, ArrowRight, XCircle, LogOut } from 'lucide-react';
 import { mockService } from '../services/mockDataService';
 
 interface EmployeesProps {
@@ -26,6 +28,32 @@ const Employees: React.FC<EmployeesProps> = ({ data, currentUser, onAddEmployee,
   const [isCredModalOpen, setIsCredModalOpen] = useState(false);
   const [credData, setCredData] = useState<{id: string, name: string, email: string, password: string}>({ id: '', name: '', email: '', password: '' });
 
+  // History/Evolution Modal State
+  const [isEvolutionModalOpen, setIsEvolutionModalOpen] = useState(false);
+  const [selectedEvolutionEmployee, setSelectedEvolutionEmployee] = useState<Employee | null>(null);
+  
+  // Estado para o Formulário de Evolução (Wizard)
+  const [evolutionFormType, setEvolutionFormType] = useState<EvolutionType>(EvolutionType.PROMOCAO);
+  const [evolutionPayload, setEvolutionPayload] = useState<{
+      newLevel: string;
+      newStep: number;
+      newRole: string;
+      newLeadershipRole: string;
+      date: string;
+      description: string;
+  }>({
+      newLevel: '',
+      newStep: 1,
+      newRole: '',
+      newLeadershipRole: '',
+      date: new Date().toISOString().split('T')[0],
+      description: ''
+  });
+
+  // Old History Modal (Read-only events)
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [historyEmployee, setHistoryEmployee] = useState<Employee | null>(null);
+
   const isAdmin = currentUser.accessLevel === AccessLevel.ADMIN;
   const isManager = currentUser.accessLevel === AccessLevel.MANAGER;
   const isPrivileged = isAdmin || isManager;
@@ -36,13 +64,20 @@ const Employees: React.FC<EmployeesProps> = ({ data, currentUser, onAddEmployee,
     lastName: '',
     email: '',
     role: '',
+    previousRole: '',
     departmentId: '',
+    joinDate: '',
     sex: 'M',
     nuti: '',
     careerCategory: '',
-    academicLevel: '',
+    careerLevel: 'E', // Default
+    careerStep: 1,    // Default
+    academicLevel: 'Licenciatura',
     contractType: 'Efectivo',
     birthDate: '',
+    fatherName: '', // Novo campo
+    motherName: '', // Novo campo
+    address: '',
     isLeadership: false,
     leadershipRole: '',
     phone: '',
@@ -55,6 +90,7 @@ const Employees: React.FC<EmployeesProps> = ({ data, currentUser, onAddEmployee,
 
   const [formData, setFormData] = useState<Partial<Employee>>(initialFormState);
   const [calculatedAge, setCalculatedAge] = useState<number | null>(null);
+  const [retirementDate, setRetirementDate] = useState<string | null>(null);
 
   // Filter Employees based on role
   const filteredEmployees = data.employees.filter(emp => {
@@ -69,7 +105,40 @@ const Employees: React.FC<EmployeesProps> = ({ data, currentUser, onAddEmployee,
 
   const getDeptName = (id: string) => data.departments.find(d => d.id === id)?.name || 'N/A';
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  // Calculate Retirement Date based on Admission + 35 years OR Age 60
+  const calculateRetirement = (joinDate: string, birthDate: string, contractType: string) => {
+     if ((contractType === 'Efectivo' || contractType === 'Mobilidade') && joinDate) {
+        const dateByService = new Date(joinDate);
+        dateByService.setFullYear(dateByService.getFullYear() + 35);
+
+        let result = "";
+
+        if (birthDate) {
+          const dateByAge = new Date(birthDate);
+          dateByAge.setFullYear(dateByAge.getFullYear() + 60);
+
+          if (dateByAge < dateByService) {
+              result = `${dateByAge.toLocaleDateString('pt-BR')} (Limite de Idade 60 anos)`;
+          } else {
+              result = `${dateByService.toLocaleDateString('pt-BR')} (35 anos de Serviço)`;
+          }
+        } else {
+          result = `${dateByService.toLocaleDateString('pt-BR')} (35 anos de Serviço)`;
+        }
+        
+        setRetirementDate(result);
+     } else {
+        setRetirementDate(null);
+     }
+  };
+
+  useEffect(() => {
+    if (formData.joinDate && formData.contractType) {
+        calculateRetirement(formData.joinDate, formData.birthDate || '', formData.contractType);
+    }
+  }, [formData.joinDate, formData.contractType, formData.birthDate]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     
     if (name === 'birthDate') {
@@ -110,14 +179,10 @@ const Employees: React.FC<EmployeesProps> = ({ data, currentUser, onAddEmployee,
     }
   };
 
-  // Function to simulate document download
   const handleDownloadDocument = (fileName: string) => {
-    // Adiciona extensão .txt para garantir que o sistema operacional abra o arquivo mockado corretamente
-    // Se o arquivo original era .pdf ou .png, o mock é texto, então precisamos que abra como texto.
     const safeFileName = fileName.endsWith('.txt') ? fileName : `${fileName}.mock_content.txt`;
-
     const element = document.createElement("a");
-    const file = new Blob([`Conteúdo simulado do arquivo: ${fileName}\n\nEste é um documento de demonstração do sistema Gestão de RH.\nData do download: ${new Date().toLocaleString()}`], {type: 'text/plain'});
+    const file = new Blob([`Conteúdo simulado: ${fileName}`], {type: 'text/plain'});
     element.href = URL.createObjectURL(file);
     element.download = safeFileName; 
     document.body.appendChild(element); 
@@ -129,6 +194,7 @@ const Employees: React.FC<EmployeesProps> = ({ data, currentUser, onAddEmployee,
     setEditingId(null);
     setFormData(initialFormState);
     setCalculatedAge(null);
+    setRetirementDate(null);
     setActiveModalTab('personal');
     setIsModalOpen(true);
   };
@@ -146,6 +212,8 @@ const Employees: React.FC<EmployeesProps> = ({ data, currentUser, onAddEmployee,
     }
     setCalculatedAge(age);
     
+    calculateRetirement(employee.joinDate, employee.birthDate, employee.contractType);
+
     setActiveModalTab('personal');
     setIsModalOpen(true);
   };
@@ -153,6 +221,94 @@ const Employees: React.FC<EmployeesProps> = ({ data, currentUser, onAddEmployee,
   const openEmailModal = (email: string) => {
     setEmailForm({ to: email, subject: '', body: '' });
     setIsEmailModalOpen(true);
+  };
+
+  const openHistoryModal = (emp: Employee) => {
+    setHistoryEmployee(emp);
+    setIsHistoryModalOpen(true);
+  };
+
+  const openEvolutionModal = (emp: Employee) => {
+      setSelectedEvolutionEmployee(emp);
+      // Initialize form with current data
+      setEvolutionFormType(EvolutionType.PROMOCAO);
+      setEvolutionPayload({
+          newLevel: emp.careerLevel,
+          newStep: emp.careerStep,
+          newRole: emp.role,
+          newLeadershipRole: emp.leadershipRole || '',
+          date: new Date().toISOString().split('T')[0],
+          description: ''
+      });
+      setIsEvolutionModalOpen(true);
+  };
+
+  const handleEvolutionSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!selectedEvolutionEmployee) return;
+
+      let origin = '';
+      let destination = '';
+      
+      // Determine Origin and Destination based on type
+      switch(evolutionFormType) {
+          case EvolutionType.PROMOCAO:
+              origin = `Nível ${selectedEvolutionEmployee.careerLevel}`;
+              destination = `Nível ${evolutionPayload.newLevel}`;
+              if (selectedEvolutionEmployee.careerLevel === evolutionPayload.newLevel) {
+                  alert("O novo nível deve ser diferente do atual.");
+                  return;
+              }
+              break;
+          case EvolutionType.PROGRESSAO:
+              origin = `Escalão ${selectedEvolutionEmployee.careerStep}`;
+              destination = `Escalão ${evolutionPayload.newStep}`;
+              if (selectedEvolutionEmployee.careerStep === evolutionPayload.newStep) {
+                  alert("O novo escalão deve ser diferente do atual.");
+                  return;
+              }
+              break;
+          case EvolutionType.MUDANCA_CARREIRA:
+              origin = selectedEvolutionEmployee.role;
+              destination = evolutionPayload.newRole;
+              if (!evolutionPayload.newRole || selectedEvolutionEmployee.role === evolutionPayload.newRole) {
+                  alert("Insira a nova função/carreira.");
+                  return;
+              }
+              break;
+          case EvolutionType.CHEFIA:
+              origin = selectedEvolutionEmployee.isLeadership ? (selectedEvolutionEmployee.leadershipRole || 'N/A') : 'Sem Cargo';
+              destination = evolutionPayload.newLeadershipRole;
+              break;
+          default:
+              origin = 'N/A';
+              destination = 'N/A';
+      }
+
+      const record: EvolutionRecord = {
+          id: `ev-${Date.now()}`,
+          employeeId: selectedEvolutionEmployee.id,
+          type: evolutionFormType,
+          date: evolutionPayload.date,
+          origin: origin,
+          destination: destination,
+          description: evolutionPayload.description || `Alteração registada: ${evolutionFormType}`,
+          isActive: true
+      };
+
+      // Mock Service updates the array reference in place
+      mockService.addEvolutionRecord(record);
+
+      alert(`Evolução de ${evolutionFormType} registada com sucesso! O perfil do funcionário foi atualizado.`);
+      setIsEvolutionModalOpen(false);
+  };
+
+  const handleCessation = (recordId: string) => {
+      if(window.confirm("Confirmar a cessação de funções para este cargo? O sistema será notificado.")) {
+          mockService.ceaseFunctions(recordId, new Date().toISOString().split('T')[0]);
+          alert("Funções cessadas com sucesso. Estado do funcionário atualizado.");
+          setIsEvolutionModalOpen(false);
+      }
   };
 
   const handleDelete = (id: string, name: string) => {
@@ -198,7 +354,7 @@ const Employees: React.FC<EmployeesProps> = ({ data, currentUser, onAddEmployee,
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isPrivileged) return; // Prevent submission if not privileged
+    if (!isPrivileged) return; 
 
     if (!formData.firstName || !formData.lastName || !formData.email) return;
 
@@ -211,8 +367,7 @@ const Employees: React.FC<EmployeesProps> = ({ data, currentUser, onAddEmployee,
     } else {
         const newEmployee: Employee = {
             id: `e${Date.now()}`,
-            joinDate: new Date().toISOString(),
-            // Use uploaded avatar if exists, otherwise generate default
+            joinDate: formData.joinDate || new Date().toISOString(),
             avatarUrl: formData.avatarUrl || `https://ui-avatars.com/api/?name=${formData.firstName}+${formData.lastName}&background=random`,
             ...(formData as Employee)
         };
@@ -222,9 +377,9 @@ const Employees: React.FC<EmployeesProps> = ({ data, currentUser, onAddEmployee,
     setIsModalOpen(false);
     setFormData(initialFormState);
     setCalculatedAge(null);
+    setRetirementDate(null);
   };
 
-  // Determine Modal Title
   const getModalTitle = () => {
     if (!isPrivileged) return 'Ficha do Funcionário (Visualização)';
     return editingId ? 'Editar Funcionário' : 'Novo Cadastro de Funcionário';
@@ -292,6 +447,20 @@ const Employees: React.FC<EmployeesProps> = ({ data, currentUser, onAddEmployee,
                         <Mail size={16} />
                     </button>
                 )}
+                {isPrivileged && (
+                    <button 
+                        onClick={() => openEvolutionModal(employee)}
+                        className="p-1.5 text-slate-500 hover:text-green-600 hover:bg-green-50 rounded-lg" title="Evolução na Carreira">
+                        <TrendingUp size={16} />
+                    </button>
+                )}
+                {isPrivileged && (
+                    <button 
+                        onClick={() => openHistoryModal(employee)}
+                        className="p-1.5 text-slate-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg" title="Histórico Geral">
+                        <History size={16} />
+                    </button>
+                )}
                 {isAdmin && (
                     <button 
                         onClick={() => openCredentialsModal(employee.id, employee.firstName, employee.email)}
@@ -330,6 +499,10 @@ const Employees: React.FC<EmployeesProps> = ({ data, currentUser, onAddEmployee,
             
             <div className="mt-6 space-y-3">
               <div className="flex items-center gap-3 text-sm text-slate-600">
+                <Briefcase size={16} className="text-slate-400" />
+                <span className="truncate">Nível {employee.careerLevel} • Escalão {employee.careerStep}</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm text-slate-600">
                 <Mail size={16} className="text-slate-400" />
                 <span className="truncate">{employee.email}</span>
               </div>
@@ -341,7 +514,8 @@ const Employees: React.FC<EmployeesProps> = ({ data, currentUser, onAddEmployee,
               )}
               <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
                 <span className={`px-2 py-1 rounded text-xs font-semibold
-                  ${employee.status === EmployeeStatus.ACTIVE ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
+                  ${employee.status === EmployeeStatus.ACTIVE ? 'bg-green-100 text-green-700' : 
+                    employee.status === EmployeeStatus.TERMINATED ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'}`}>
                   {employee.status}
                 </span>
                 {isPrivileged && (
@@ -362,8 +536,8 @@ const Employees: React.FC<EmployeesProps> = ({ data, currentUser, onAddEmployee,
       {/* NEW/EDIT EMPLOYEE MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          {/* Main Modal Container - Width Increased to 7xl, Fixed height 90vh */}
-          <div className="bg-white rounded-xl w-full max-w-7xl h-[90vh] shadow-2xl flex flex-col">
+          {/* Main Modal Container - Width Increased to 7xl, Fixed height 95vh */}
+          <div className="bg-white rounded-xl w-full max-w-7xl h-[95vh] shadow-2xl flex flex-col">
             <div className="flex justify-between items-center p-6 border-b border-slate-100 shrink-0">
               <div>
                  <h3 className="text-xl font-bold text-slate-800">{getModalTitle()}</h3>
@@ -442,6 +616,14 @@ const Employees: React.FC<EmployeesProps> = ({ data, currentUser, onAddEmployee,
                                 <input name="lastName" required className="w-full border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.lastName} disabled={!isPrivileged} />
                             </div>
                             <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Nome do Pai</label>
+                                <input name="fatherName" className="w-full border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.fatherName} placeholder="Nome do Pai" disabled={!isPrivileged} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Nome da Mãe</label>
+                                <input name="motherName" className="w-full border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.motherName} placeholder="Nome da Mãe" disabled={!isPrivileged} />
+                            </div>
+                            <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Sexo</label>
                                 <select name="sex" className="w-full border rounded-lg px-4 py-2.5 bg-white disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.sex} disabled={!isPrivileged}>
                                 <option value="M">Masculino</option>
@@ -501,23 +683,71 @@ const Employees: React.FC<EmployeesProps> = ({ data, currentUser, onAddEmployee,
                                     className="w-full border rounded-lg px-4 py-2.5 bg-white disabled:bg-slate-100 disabled:text-slate-500" 
                                     onChange={handleInputChange} 
                                     value={formData.departmentId}
-                                    disabled={!isPrivileged} // Users cannot change their own dept
+                                    disabled={!isPrivileged} 
                                 >
                                 <option value="">Selecione...</option>
                                 {data.departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Carreira / Categoria</label>
-                                <input name="careerCategory" required className="w-full border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.careerCategory} placeholder="Ex: Técnico Superior" disabled={!isPrivileged} />
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Data de Admissão</label>
+                                <input type="date" name="joinDate" required className="w-full border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.joinDate} disabled={!isPrivileged} />
+                                {retirementDate && (
+                                   <div className="mt-1 text-xs font-semibold text-indigo-600 bg-indigo-50 p-2 rounded border border-indigo-100">
+                                      Previsão de Reforma: {retirementDate}
+                                   </div>
+                                )}
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Função Atual</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Função Atual (Carreira)</label>
                                 <input name="role" required className="w-full border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.role} placeholder="Ex: Engenheiro de Software" disabled={!isPrivileged} />
                             </div>
                             <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Função Anterior</label>
+                                <input name="previousRole" className="w-full border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.previousRole} placeholder="Se houver" disabled={!isPrivileged} />
+                            </div>
+                            
+                            {/* New Fields: Level & Step */}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Nível Salarial (Promoção)</label>
+                                <select 
+                                  name="careerLevel" 
+                                  className="w-full border rounded-lg px-4 py-2.5 bg-white disabled:bg-slate-100 disabled:text-slate-500"
+                                  onChange={handleInputChange}
+                                  value={formData.careerLevel}
+                                  disabled={!isPrivileged}
+                                >
+                                  {['A','B','C','D','E'].map(l => <option key={l} value={l}>Nível {l}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Escalão (Progressão)</label>
+                                <select 
+                                  name="careerStep" 
+                                  className="w-full border rounded-lg px-4 py-2.5 bg-white disabled:bg-slate-100 disabled:text-slate-500"
+                                  onChange={handleInputChange}
+                                  value={formData.careerStep}
+                                  disabled={!isPrivileged}
+                                >
+                                  {[1,2,3].map(s => <option key={s} value={s}>Escalão {s}</option>)}
+                                </select>
+                            </div>
+                            
+                            <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Nível Acadêmico</label>
-                                <input name="academicLevel" required className="w-full border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.academicLevel} placeholder="Ex: Licenciatura" disabled={!isPrivileged} />
+                                <select name="academicLevel" required className="w-full border rounded-lg px-4 py-2.5 bg-white disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.academicLevel} disabled={!isPrivileged}>
+                                  <option value="">Selecione...</option>
+                                  <option value="Elementar">Elementar</option>
+                                  <option value="Básico">Básico</option>
+                                  <option value="Médio">Médio</option>
+                                  <option value="Licenciatura">Licenciatura</option>
+                                  <option value="Mestrado">Mestrado</option>
+                                  <option value="Doutorado">Doutorado</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Carreira / Categoria</label>
+                                <input name="careerCategory" required className="w-full border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.careerCategory} placeholder="Ex: Técnico Superior" disabled={!isPrivileged} />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Regime Contratual</label>
@@ -561,19 +791,28 @@ const Employees: React.FC<EmployeesProps> = ({ data, currentUser, onAddEmployee,
               {/* TAB: CONTACTS */}
               {activeModalTab === 'contacts' && (
                   <div className="space-y-6 animate-fade-in">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Email Profissional</label>
-                            <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                                <input type="email" name="email" required className="w-full pl-10 border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.email} disabled={!isPrivileged} />
+                    <div className="grid grid-cols-1 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Email Profissional</label>
+                                <div className="relative">
+                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                    <input type="email" name="email" required className="w-full pl-10 border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.email} disabled={!isPrivileged} />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Telefone / Móvel</label>
+                                <div className="relative">
+                                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                    <input type="tel" name="phone" className="w-full pl-10 border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.phone} disabled={!isPrivileged} />
+                                </div>
                             </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Telefone / Móvel</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Endereço Residencial</label>
                             <div className="relative">
-                                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                                <input type="tel" name="phone" className="w-full pl-10 border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.phone} disabled={!isPrivileged} />
+                                <MapPin className="absolute left-3 top-3 text-slate-400" size={18} />
+                                <textarea name="address" className="w-full pl-10 border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" rows={3} onChange={handleInputChange} value={formData.address} disabled={!isPrivileged} placeholder="Cidade, Bairro, Rua, Nº Casa"></textarea>
                             </div>
                         </div>
                     </div>
@@ -644,6 +883,218 @@ const Employees: React.FC<EmployeesProps> = ({ data, currentUser, onAddEmployee,
                )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* EVOLUTION MANAGEMENT MODAL */}
+      {isEvolutionModalOpen && selectedEvolutionEmployee && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl w-full max-w-4xl shadow-2xl flex flex-col h-[90vh]">
+                <div className="flex justify-between items-center p-6 border-b border-slate-100 shrink-0">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-green-50 text-green-600 rounded-lg">
+                            <TrendingUp size={20} />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-bold text-slate-800">Evolução na Carreira</h3>
+                            <p className="text-sm text-slate-500">{selectedEvolutionEmployee.firstName} {selectedEvolutionEmployee.lastName}</p>
+                        </div>
+                    </div>
+                    <button onClick={() => setIsEvolutionModalOpen(false)} className="text-slate-400 hover:text-red-500">
+                        <X size={24} />
+                    </button>
+                </div>
+                
+                <div className="flex flex-1 overflow-hidden">
+                    {/* Left: Timeline History */}
+                    <div className="w-5/12 border-r border-slate-100 p-6 overflow-y-auto bg-slate-50">
+                        <h4 className="font-semibold text-slate-700 mb-4 flex items-center gap-2"><History size={16}/> Histórico</h4>
+                        <div className="space-y-6">
+                            {data.evolutionHistory
+                                .filter(h => h.employeeId === selectedEvolutionEmployee.id)
+                                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                .map((record) => (
+                                <div key={record.id} className="relative pl-6 border-l-2 border-slate-200 group">
+                                    <div className={`absolute -left-[9px] top-0 w-4 h-4 rounded-full border-2 border-white ring-2 ${record.type === EvolutionType.CESSACAO ? 'bg-red-500 ring-red-100' : record.isActive ? 'bg-green-500 ring-green-100' : 'bg-slate-300 ring-slate-100'}`}></div>
+                                    <div className={`bg-white p-3 rounded-lg shadow-sm border ${record.type === EvolutionType.CESSACAO ? 'border-red-100 bg-red-50' : 'border-slate-100'}`}>
+                                        <div className="flex justify-between items-start mb-1">
+                                            <span className={`text-[10px] font-bold uppercase ${record.type === EvolutionType.CESSACAO ? 'text-red-600' : 'text-slate-500'}`}>{record.type}</span>
+                                            <span className="text-[10px] text-slate-400">{new Date(record.date).toLocaleDateString('pt-BR')}</span>
+                                        </div>
+                                        
+                                        <div className="mt-2 space-y-1">
+                                            <div className="flex flex-col gap-1 text-sm">
+                                                <div className="text-slate-400 text-xs">De: <span className="text-slate-600 line-through decoration-slate-300">{record.origin}</span></div>
+                                                <div className="font-bold text-slate-800">Para: {record.destination}</div>
+                                            </div>
+                                        </div>
+
+                                        {record.description && <p className="text-xs text-slate-500 mt-2 italic border-t border-slate-100 pt-2">"{record.description}"</p>}
+                                        
+                                        {record.isActive && (
+                                            <div className="mt-3 pt-2 border-t border-slate-100 flex justify-end">
+                                                <button 
+                                                    onClick={() => handleCessation(record.id)}
+                                                    className="text-xs text-red-500 hover:text-red-700 font-medium flex items-center gap-1 px-2 py-1 hover:bg-red-50 rounded"
+                                                >
+                                                    <LogOut size={12} /> Cessar
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Right: New Evolution Wizard */}
+                    <div className="w-7/12 p-8 overflow-y-auto">
+                        <h4 className="font-semibold text-slate-700 mb-6 flex items-center gap-2 border-b border-slate-100 pb-2">
+                           <Plus size={16}/> Registar Nova Movimentação
+                        </h4>
+                        
+                        <form onSubmit={handleEvolutionSubmit} className="space-y-6">
+                            {/* Step 1: Select Type */}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Tipo de Alteração</label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {[
+                                        { id: EvolutionType.PROMOCAO, label: 'Promoção (Nível)', icon: TrendingUp },
+                                        { id: EvolutionType.PROGRESSAO, label: 'Progressão (Escalão)', icon: ArrowRight },
+                                        { id: EvolutionType.MUDANCA_CARREIRA, label: 'Mudança de Carreira', icon: Briefcase },
+                                        { id: EvolutionType.CHEFIA, label: 'Nomeação Chefia', icon: User },
+                                    ].map((type) => (
+                                        <button
+                                            key={type.id}
+                                            type="button"
+                                            onClick={() => setEvolutionFormType(type.id)}
+                                            className={`p-3 rounded-lg border text-sm font-medium flex items-center gap-2 transition-all
+                                                ${evolutionFormType === type.id 
+                                                    ? 'bg-brand-50 border-brand-500 text-brand-700 ring-1 ring-brand-500' 
+                                                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                                        >
+                                            <type.icon size={16} />
+                                            {type.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Step 2: Specific Inputs based on Type */}
+                            <div className="bg-slate-50 p-6 rounded-xl border border-slate-100 space-y-4">
+                                
+                                {evolutionFormType === EvolutionType.PROMOCAO && (
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nível Atual</label>
+                                            <div className="text-lg font-bold text-slate-700">Nível {selectedEvolutionEmployee.careerLevel}</div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-brand-600 uppercase mb-1">Novo Nível (A-E)</label>
+                                            <select 
+                                                className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-500"
+                                                value={evolutionPayload.newLevel}
+                                                onChange={e => setEvolutionPayload({...evolutionPayload, newLevel: e.target.value})}
+                                            >
+                                                {['A','B','C','D','E'].map(l => (
+                                                    <option key={l} value={l} disabled={l === selectedEvolutionEmployee.careerLevel}>Nível {l}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {evolutionFormType === EvolutionType.PROGRESSAO && (
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Escalão Atual</label>
+                                            <div className="text-lg font-bold text-slate-700">Escalão {selectedEvolutionEmployee.careerStep}</div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-brand-600 uppercase mb-1">Novo Escalão (1-3)</label>
+                                            <select 
+                                                className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-500"
+                                                value={evolutionPayload.newStep}
+                                                onChange={e => setEvolutionPayload({...evolutionPayload, newStep: parseInt(e.target.value)})}
+                                            >
+                                                {[1,2,3].map(s => (
+                                                    <option key={s} value={s} disabled={s === selectedEvolutionEmployee.careerStep}>Escalão {s}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {evolutionFormType === EvolutionType.MUDANCA_CARREIRA && (
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Função Atual</label>
+                                            <div className="text-base font-medium text-slate-700">{selectedEvolutionEmployee.role}</div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-brand-600 uppercase mb-1">Nova Função / Categoria</label>
+                                            <input 
+                                                type="text"
+                                                className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-500"
+                                                placeholder="Ex: Assistente Técnico"
+                                                value={evolutionPayload.newRole}
+                                                onChange={e => setEvolutionPayload({...evolutionPayload, newRole: e.target.value})}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {evolutionFormType === EvolutionType.CHEFIA && (
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Cargo Anterior</label>
+                                            <div className="text-base font-medium text-slate-700">{selectedEvolutionEmployee.isLeadership ? selectedEvolutionEmployee.leadershipRole : 'Sem Cargo de Chefia'}</div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-brand-600 uppercase mb-1">Novo Cargo de Direção</label>
+                                            <input 
+                                                type="text"
+                                                className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-500"
+                                                placeholder="Ex: Chefe de Repartição"
+                                                value={evolutionPayload.newLeadershipRole}
+                                                onChange={e => setEvolutionPayload({...evolutionPayload, newLeadershipRole: e.target.value})}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Data de Efeito</label>
+                                    <input 
+                                        type="date" 
+                                        required
+                                        className="w-full border rounded-lg px-3 py-2 text-sm"
+                                        value={evolutionPayload.date}
+                                        onChange={e => setEvolutionPayload({...evolutionPayload, date: e.target.value})}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Observações</label>
+                                    <textarea 
+                                        className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500"
+                                        rows={2}
+                                        placeholder="Justificativa da alteração..."
+                                        value={evolutionPayload.description}
+                                        onChange={e => setEvolutionPayload({...evolutionPayload, description: e.target.value})}
+                                    ></textarea>
+                                </div>
+                            </div>
+
+                            <div className="pt-2 flex justify-end">
+                                <button type="submit" className="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2.5 rounded-lg font-medium flex items-center gap-2 shadow-sm transition-transform active:scale-95">
+                                    <Save size={18} /> Confirmar Evolução
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </div>
       )}
 
@@ -770,21 +1221,93 @@ const Employees: React.FC<EmployeesProps> = ({ data, currentUser, onAddEmployee,
                    className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg"
                  >
                    Cancelar
-                 </button>
-                 <button 
-                   type="submit" 
-                   className="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-                 >
-                   <Send size={18} />
-                   Enviar
-                 </button>
-               </div>
-            </form>
+                   </button>
+                   <button 
+                     type="submit" 
+                     className="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                   >
+                     <Send size={18} />
+                     Enviar
+                   </button>
+                 </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default Employees;
+        )}
+  
+        {/* HISTORY MODAL (General Logs) */}
+        {isHistoryModalOpen && historyEmployee && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
+                  <div className="flex justify-between items-center p-6 border-b border-slate-100 shrink-0">
+                      <div className="flex items-center gap-3">
+                          <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
+                              <History size={20} />
+                          </div>
+                          <div>
+                              <h3 className="text-xl font-bold text-slate-800">Histórico do Funcionário</h3>
+                              <p className="text-sm text-slate-500">{historyEmployee.firstName} {historyEmployee.lastName}</p>
+                          </div>
+                      </div>
+                      <button onClick={() => setIsHistoryModalOpen(false)} className="text-slate-400 hover:text-red-500">
+                          <X size={24} />
+                      </button>
+                  </div>
+                  
+                  <div className="p-6 overflow-y-auto">
+                      <div className="relative border-l-2 border-slate-200 ml-3 space-y-8">
+                          {(() => {
+                              const events = [
+                                  {
+                                      date: historyEmployee.joinDate,
+                                      title: 'Admissão',
+                                      description: `Início de contrato como ${historyEmployee.role}`,
+                                      icon: User,
+                                      color: 'bg-blue-500',
+                                      dateObj: new Date(historyEmployee.joinDate)
+                                  }
+                              ];
+                              
+                              data.leaveRequests.forEach(req => {
+                                  if(req.employeeId === historyEmployee.id) {
+                                      events.push({
+                                          date: req.startDate,
+                                          title: `Solicitação: ${req.type}`,
+                                          description: `${req.reason} (${req.status})`,
+                                          icon: Calendar,
+                                          color: req.status === 'Aprovado' ? 'bg-green-500' : 'bg-amber-500',
+                                          dateObj: new Date(req.startDate)
+                                      });
+                                  }
+                              });
+  
+                              return events
+                                  .sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime())
+                                  .map((evt, idx) => {
+                                      const Icon = evt.icon;
+                                      return (
+                                          <div key={idx} className="relative pl-8">
+                                              <div className={`absolute -left-[9px] top-0 w-4 h-4 rounded-full ${evt.color} border-2 border-white ring-2 ring-slate-100`}></div>
+                                              <div>
+                                                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{new Date(evt.date).toLocaleDateString('pt-BR')}</span>
+                                                  <h4 className="text-base font-bold text-slate-800 mt-1">{evt.title}</h4>
+                                                  <p className="text-sm text-slate-600 mt-1">{evt.description}</p>
+                                              </div>
+                                          </div>
+                                      );
+                                  });
+                          })()}
+                      </div>
+                  </div>
+                  
+                  <div className="p-6 border-t border-slate-100 flex justify-end">
+                       <button onClick={() => setIsHistoryModalOpen(false)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200">Fechar</button>
+                  </div>
+              </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+  
+  export default Employees;

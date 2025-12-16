@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { AppData, RequestStatus, ViewState } from '../types';
-import { Users, Briefcase, CalendarClock, TrendingUp, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Users, Briefcase, CalendarClock, TrendingUp, AlertCircle, CheckCircle2, TrendingUp as TrendingUpIcon, Award, ArrowUpCircle, Crown, Repeat } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 
 interface DashboardProps {
@@ -81,6 +82,67 @@ const Dashboard: React.FC<DashboardProps> = ({ data, changeView }) => {
           icon={TrendingUp} 
           color="bg-emerald-500 text-emerald-500"
         />
+      </div>
+
+      {/* Evolution Section */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
+         <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+           <TrendingUpIcon size={20} className="text-brand-600"/>
+           Evolução na Carreira
+         </h3>
+         <p className="text-sm text-slate-500 mb-6">Acesse os relatórios detalhados sobre o desenvolvimento e movimentação dos funcionários.</p>
+         
+         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+             <button 
+                onClick={() => changeView(ViewState.EVOLUTION)}
+                className="flex flex-col items-center justify-center p-4 rounded-xl border border-slate-100 hover:border-brand-300 hover:bg-brand-50 transition-all group gap-2"
+             >
+                <div className="p-3 bg-blue-100 text-blue-600 rounded-full group-hover:scale-110 transition-transform">
+                   <Briefcase size={20} />
+                </div>
+                <span className="text-sm font-semibold text-slate-700">Carreira</span>
+             </button>
+
+             <button 
+                onClick={() => changeView(ViewState.EVOLUTION)}
+                className="flex flex-col items-center justify-center p-4 rounded-xl border border-slate-100 hover:border-purple-300 hover:bg-purple-50 transition-all group gap-2"
+             >
+                <div className="p-3 bg-purple-100 text-purple-600 rounded-full group-hover:scale-110 transition-transform">
+                   <Award size={20} />
+                </div>
+                <span className="text-sm font-semibold text-slate-700">Promoções</span>
+             </button>
+
+             <button 
+                onClick={() => changeView(ViewState.EVOLUTION)}
+                className="flex flex-col items-center justify-center p-4 rounded-xl border border-slate-100 hover:border-emerald-300 hover:bg-emerald-50 transition-all group gap-2"
+             >
+                <div className="p-3 bg-emerald-100 text-emerald-600 rounded-full group-hover:scale-110 transition-transform">
+                   <ArrowUpCircle size={20} />
+                </div>
+                <span className="text-sm font-semibold text-slate-700">Progressões</span>
+             </button>
+
+             <button 
+                onClick={() => changeView(ViewState.EVOLUTION)}
+                className="flex flex-col items-center justify-center p-4 rounded-xl border border-slate-100 hover:border-amber-300 hover:bg-amber-50 transition-all group gap-2"
+             >
+                <div className="p-3 bg-amber-100 text-amber-600 rounded-full group-hover:scale-110 transition-transform">
+                   <Crown size={20} />
+                </div>
+                <span className="text-sm font-semibold text-slate-700 text-center">Chefia e Direção</span>
+             </button>
+
+             <button 
+                onClick={() => changeView(ViewState.EVOLUTION)}
+                className="flex flex-col items-center justify-center p-4 rounded-xl border border-slate-100 hover:border-rose-300 hover:bg-rose-50 transition-all group gap-2"
+             >
+                <div className="p-3 bg-rose-100 text-rose-600 rounded-full group-hover:scale-110 transition-transform">
+                   <Repeat size={20} />
+                </div>
+                <span className="text-sm font-semibold text-slate-700 text-center">Mobilidade Interna</span>
+             </button>
+         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

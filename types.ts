@@ -1,10 +1,13 @@
+
+
 export enum ViewState {
   DASHBOARD = 'DASHBOARD',
   EMPLOYEES = 'EMPLOYEES',
   DEPARTMENTS = 'DEPARTMENTS',
   VACATIONS = 'VACATIONS',
   REPORTS = 'REPORTS',
-  AI_ASSISTANT = 'AI_ASSISTANT'
+  AI_ASSISTANT = 'AI_ASSISTANT',
+  EVOLUTION = 'EVOLUTION'
 }
 
 export enum AccessLevel {
@@ -32,8 +35,9 @@ export interface Employee {
   lastName: string;
   email: string;
   role: string; // Used as current job title
+  previousRole?: string; // Função Anterior
   departmentId: string;
-  joinDate: string;
+  joinDate: string; // Data de Admissão
   salary: number;
   status: EmployeeStatus;
   avatarUrl: string;
@@ -46,10 +50,23 @@ export interface Employee {
   // New Fields
   sex: 'M' | 'F';
   nuti: string;
-  careerCategory: string; // Carreira/Categoria
-  academicLevel: string;
+  careerCategory: string; // Carreira/Categoria (Ex: Técnico, Assistente)
+  
+  // --- NOVOS CAMPOS PARA PROMOÇÃO E PROGRESSÃO ---
+  careerLevel: 'A' | 'B' | 'C' | 'D' | 'E'; // Níveis para Promoção
+  careerStep: 1 | 2 | 3; // Escalões para Progressão
+  // -----------------------------------------------
+
+  academicLevel: 'Elementar' | 'Básico' | 'Médio' | 'Licenciatura' | 'Mestrado' | 'Doutorado' | string;
   contractType: 'Efectivo' | 'Contratado' | 'Mobilidade' | 'Destacado';
   birthDate: string;
+  
+  // --- FILIAÇÃO SEPARADA ---
+  fatherName?: string; 
+  motherName?: string;
+  // -------------------------
+
+  address?: string; // Endereço
   isLeadership: boolean;
   leadershipRole?: string;
   phone: string;
@@ -107,10 +124,34 @@ export interface Notification {
   recipientEmail?: string;
 }
 
+// --- EVOLUTION / CAREER HISTORY TYPES ---
+export enum EvolutionType {
+  ADMISSAO = 'Admissão',
+  PROMOCAO = 'Promoção', // Muda Nível (A-E)
+  PROGRESSAO = 'Progressão', // Muda Escalão (1-3)
+  MUDANCA_CARREIRA = 'Mudança de Carreira', // Muda Função/Categoria
+  CHEFIA = 'Nomeação Chefia',
+  MOBILIDADE = 'Mobilidade', // Muda departamento/local
+  CESSACAO = 'Cessação de Funções'
+}
+
+export interface EvolutionRecord {
+  id: string;
+  employeeId: string;
+  type: EvolutionType;
+  date: string;
+  endDate?: string; // Usado para saber se a função cessou
+  origin: string; // De onde sai (Ex: Nível E)
+  destination: string; // Para onde vai (Ex: Nível D)
+  description: string; // Observações adicionais
+  isActive: boolean; // Se é o estado atual
+}
+
 export interface AppData {
   departments: Department[];
   employees: Employee[];
   leaveRequests: LeaveRequest[];
   vacationPlans: VacationPlan[];
   notifications: Notification[];
+  evolutionHistory: EvolutionRecord[];
 }
