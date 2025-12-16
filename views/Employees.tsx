@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AppData, Employee, EmployeeStatus, AccessLevel } from '../types';
-import { Search, Plus, Filter, MoreHorizontal, Mail, Phone, X, Upload, Save, User, Calendar, FileText, Pencil, Trash2, KeyRound, Shield, Eye, Send, Lock, RefreshCw, Camera, Download } from 'lucide-react';
+import { Search, Plus, Filter, MoreHorizontal, Mail, Phone, X, Upload, Save, User, Calendar, FileText, Pencil, Trash2, KeyRound, Shield, Eye, Send, Lock, RefreshCw, Camera, Download, Briefcase } from 'lucide-react';
 import { mockService } from '../services/mockDataService';
 
 interface EmployeesProps {
@@ -16,6 +16,7 @@ const Employees: React.FC<EmployeesProps> = ({ data, currentUser, onAddEmployee,
   const [filterDept, setFilterDept] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [activeModalTab, setActiveModalTab] = useState<'personal' | 'professional' | 'contacts' | 'documents'>('personal');
   
   // Email Modal State
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
@@ -111,11 +112,15 @@ const Employees: React.FC<EmployeesProps> = ({ data, currentUser, onAddEmployee,
 
   // Function to simulate document download
   const handleDownloadDocument = (fileName: string) => {
+    // Adiciona extensão .txt para garantir que o sistema operacional abra o arquivo mockado corretamente
+    // Se o arquivo original era .pdf ou .png, o mock é texto, então precisamos que abra como texto.
+    const safeFileName = fileName.endsWith('.txt') ? fileName : `${fileName}.mock_content.txt`;
+
     const element = document.createElement("a");
     const file = new Blob([`Conteúdo simulado do arquivo: ${fileName}\n\nEste é um documento de demonstração do sistema Gestão de RH.\nData do download: ${new Date().toLocaleString()}`], {type: 'text/plain'});
     element.href = URL.createObjectURL(file);
-    element.download = fileName; // Uses the filename provided
-    document.body.appendChild(element); // Required for FireFox
+    element.download = safeFileName; 
+    document.body.appendChild(element); 
     element.click();
     document.body.removeChild(element);
   };
@@ -124,6 +129,7 @@ const Employees: React.FC<EmployeesProps> = ({ data, currentUser, onAddEmployee,
     setEditingId(null);
     setFormData(initialFormState);
     setCalculatedAge(null);
+    setActiveModalTab('personal');
     setIsModalOpen(true);
   };
 
@@ -140,6 +146,7 @@ const Employees: React.FC<EmployeesProps> = ({ data, currentUser, onAddEmployee,
     }
     setCalculatedAge(age);
     
+    setActiveModalTab('personal');
     setIsModalOpen(true);
   };
 
@@ -368,226 +375,254 @@ const Employees: React.FC<EmployeesProps> = ({ data, currentUser, onAddEmployee,
                 <X size={24} />
               </button>
             </div>
+
+            {/* Tab Navigation */}
+            <div className="flex border-b border-slate-100 px-6">
+                <button 
+                    onClick={() => setActiveModalTab('personal')}
+                    className={`flex items-center gap-2 px-4 py-4 text-sm font-medium border-b-2 transition-colors ${activeModalTab === 'personal' ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                >
+                    <User size={18} /> Dados Pessoais
+                </button>
+                <button 
+                    onClick={() => setActiveModalTab('professional')}
+                    className={`flex items-center gap-2 px-4 py-4 text-sm font-medium border-b-2 transition-colors ${activeModalTab === 'professional' ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                >
+                    <Briefcase size={18} /> Dados Profissionais
+                </button>
+                <button 
+                    onClick={() => setActiveModalTab('contacts')}
+                    className={`flex items-center gap-2 px-4 py-4 text-sm font-medium border-b-2 transition-colors ${activeModalTab === 'contacts' ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                >
+                    <Phone size={18} /> Contactos
+                </button>
+                <button 
+                    onClick={() => setActiveModalTab('documents')}
+                    className={`flex items-center gap-2 px-4 py-4 text-sm font-medium border-b-2 transition-colors ${activeModalTab === 'documents' ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                >
+                    <FileText size={18} /> Documentos
+                </button>
+            </div>
             
             <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-8">
               
-              {/* Avatar Upload Section */}
-              <div className="flex items-center gap-4 mb-2">
-                 <div className="w-20 h-20 rounded-full bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden relative group">
-                    {formData.avatarUrl ? (
-                        <img src={formData.avatarUrl} alt="Preview" className="w-full h-full object-cover" />
-                    ) : (
-                        <User size={32} className="text-slate-400" />
-                    )}
-                     {isPrivileged && (
-                        <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
-                            <Camera className="text-white" size={24} />
-                            <input type="file" className="hidden" accept="image/*" onChange={handleAvatarChange} />
-                        </label>
-                     )}
-                 </div>
-                 {isPrivileged && (
-                     <div>
-                        <h4 className="font-medium text-slate-700">Fotografia do Funcionário</h4>
-                        <p className="text-xs text-slate-500">Clique na imagem para enviar uma foto.</p>
-                     </div>
-                 )}
-              </div>
+              {/* TAB: PERSONAL */}
+              {activeModalTab === 'personal' && (
+                  <div className="space-y-6 animate-fade-in">
+                        {/* Avatar Upload Section */}
+                        <div className="flex items-center gap-4 mb-2 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                            <div className="w-20 h-20 rounded-full bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden relative group">
+                                {formData.avatarUrl ? (
+                                    <img src={formData.avatarUrl} alt="Preview" className="w-full h-full object-cover" />
+                                ) : (
+                                    <User size={32} className="text-slate-400" />
+                                )}
+                                {isPrivileged && (
+                                    <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                                        <Camera className="text-white" size={24} />
+                                        <input type="file" className="hidden" accept="image/*" onChange={handleAvatarChange} />
+                                    </label>
+                                )}
+                            </div>
+                            {isPrivileged && (
+                                <div>
+                                    <h4 className="font-medium text-slate-700">Fotografia do Funcionário</h4>
+                                    <p className="text-xs text-slate-500">Clique na imagem para enviar uma foto.</p>
+                                </div>
+                            )}
+                        </div>
 
-              {/* Access Level (Only for Admin) */}
-              {isPrivileged && (
-                  <div className="bg-amber-50 p-6 rounded-lg border border-amber-100">
-                    <h4 className="flex items-center gap-2 font-semibold text-amber-800 mb-6 text-lg">
-                      <Shield size={20} /> Permissões de Sistema
-                    </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Primeiro Nome</label>
+                                <input name="firstName" required className="w-full border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.firstName} disabled={!isPrivileged} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Apelido (Último Nome)</label>
+                                <input name="lastName" required className="w-full border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.lastName} disabled={!isPrivileged} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Sexo</label>
+                                <select name="sex" className="w-full border rounded-lg px-4 py-2.5 bg-white disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.sex} disabled={!isPrivileged}>
+                                <option value="M">Masculino</option>
+                                <option value="F">Feminino</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Data de Nascimento</label>
+                                <input type="date" name="birthDate" required className="w-full border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.birthDate} disabled={!isPrivileged} />
+                                {calculatedAge !== null && (
+                                <span className="text-xs text-brand-600 mt-1 font-medium">Idade calculada: {calculatedAge} anos</span>
+                                )}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">NUTI (NIF)</label>
+                                <input name="nuti" required className="w-full border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.nuti} placeholder="Número Único Tributário" disabled={!isPrivileged} />
+                            </div>
+                        </div>
+                  </div>
+              )}
+
+              {/* TAB: PROFESSIONAL */}
+              {activeModalTab === 'professional' && (
+                  <div className="space-y-6 animate-fade-in">
+                       {/* Access Level (Only for Admin) */}
+                        {isPrivileged && (
+                            <div className="bg-amber-50 p-6 rounded-lg border border-amber-100 mb-6">
+                                <h4 className="flex items-center gap-2 font-semibold text-amber-800 mb-4 text-sm uppercase">
+                                <Shield size={16} /> Permissões de Sistema
+                                </h4>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Nível de Acesso</label>
+                                    <select 
+                                        name="accessLevel" 
+                                        className="w-full border rounded-lg px-4 py-2.5 bg-white border-amber-200" 
+                                        onChange={handleInputChange} 
+                                        value={formData.accessLevel}
+                                    >
+                                        <option value={AccessLevel.EMPLOYEE}>Funcionário (Usuário)</option>
+                                        <option value={AccessLevel.MANAGER}>Gestor</option>
+                                        {isAdmin && <option value={AccessLevel.ADMIN}>Administrador</option>}
+                                    </select>
+                                    <p className="text-xs text-amber-700 mt-2">
+                                        {formData.accessLevel === AccessLevel.EMPLOYEE ? "Acesso limitado aos próprios dados e solicitações." : 
+                                            formData.accessLevel === AccessLevel.MANAGER ? "Autonomia para gerir equipe e aprovar solicitações." : "Controle total do sistema."}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Departamento</label>
+                                <select 
+                                    name="departmentId" 
+                                    required 
+                                    className="w-full border rounded-lg px-4 py-2.5 bg-white disabled:bg-slate-100 disabled:text-slate-500" 
+                                    onChange={handleInputChange} 
+                                    value={formData.departmentId}
+                                    disabled={!isPrivileged} // Users cannot change their own dept
+                                >
+                                <option value="">Selecione...</option>
+                                {data.departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Carreira / Categoria</label>
+                                <input name="careerCategory" required className="w-full border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.careerCategory} placeholder="Ex: Técnico Superior" disabled={!isPrivileged} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Função Atual</label>
+                                <input name="role" required className="w-full border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.role} placeholder="Ex: Engenheiro de Software" disabled={!isPrivileged} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Nível Acadêmico</label>
+                                <input name="academicLevel" required className="w-full border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.academicLevel} placeholder="Ex: Licenciatura" disabled={!isPrivileged} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Regime Contratual</label>
+                                <select name="contractType" className="w-full border rounded-lg px-4 py-2.5 bg-white disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.contractType} disabled={!isPrivileged}>
+                                <option value="Efectivo">Efectivo</option>
+                                <option value="Contratado">Contratado</option>
+                                <option value="Mobilidade">Transferência (Mobilidade)</option>
+                                <option value="Destacado">Destacado</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Salário Base</label>
+                                <input type="number" name="salary" className="w-full border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.salary} disabled={!isPrivileged} />
+                            </div>
+                        </div>
+
+                        <div className="mt-6 pt-6 border-t border-slate-200">
+                        <div className="flex items-center gap-3 mb-2">
+                            <input 
+                            type="checkbox" 
+                            id="isLeadership" 
+                            name="isLeadership" 
+                            checked={formData.isLeadership}
+                            onChange={handleInputChange}
+                            className="w-5 h-5 text-brand-600 rounded focus:ring-brand-500"
+                            disabled={!isPrivileged}
+                            />
+                            <label htmlFor="isLeadership" className="text-base font-medium text-slate-700">Ocupa Cargo de Direção / Chefia?</label>
+                        </div>
+                        
+                        {formData.isLeadership && (
+                            <div className="mt-4 animate-fade-in max-w-md">
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Designação do Cargo</label>
+                            <input name="leadershipRole" required className="w-full border border-brand-300 bg-brand-50 rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.leadershipRole} placeholder="Ex: Director de Recursos Humanos" disabled={!isPrivileged} />
+                            </div>
+                        )}
+                        </div>
+                  </div>
+              )}
+
+              {/* TAB: CONTACTS */}
+              {activeModalTab === 'contacts' && (
+                  <div className="space-y-6 animate-fade-in">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                       <div>
-                           <label className="block text-sm font-medium text-slate-700 mb-1">Nível de Acesso</label>
-                           <select 
-                            name="accessLevel" 
-                            className="w-full border rounded-lg px-4 py-2.5 bg-white border-amber-200" 
-                            onChange={handleInputChange} 
-                            value={formData.accessLevel}
-                           >
-                             <option value={AccessLevel.EMPLOYEE}>Funcionário (Usuário)</option>
-                             <option value={AccessLevel.MANAGER}>Gestor</option>
-                             {isAdmin && <option value={AccessLevel.ADMIN}>Administrador</option>}
-                           </select>
-                           <p className="text-xs text-amber-700 mt-2">
-                               {formData.accessLevel === AccessLevel.EMPLOYEE ? "Acesso limitado aos próprios dados e solicitações." : 
-                                formData.accessLevel === AccessLevel.MANAGER ? "Autonomia para gerir equipe e aprovar solicitações." : "Controle total do sistema."}
-                           </p>
-                       </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Email Profissional</label>
+                            <div className="relative">
+                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                <input type="email" name="email" required className="w-full pl-10 border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.email} disabled={!isPrivileged} />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Telefone / Móvel</label>
+                            <div className="relative">
+                                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                <input type="tel" name="phone" className="w-full pl-10 border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.phone} disabled={!isPrivileged} />
+                            </div>
+                        </div>
                     </div>
                   </div>
               )}
 
-              {/* Dados Pessoais */}
-              <div className="bg-slate-50 p-6 rounded-lg border border-slate-100">
-                <h4 className="flex items-center gap-2 font-semibold text-brand-700 mb-6 text-lg">
-                  <User size={20} /> Dados Pessoais
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <div className="lg:col-span-1">
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Primeiro Nome</label>
-                    <input name="firstName" required className="w-full border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.firstName} disabled={!isPrivileged} />
-                  </div>
-                  <div className="lg:col-span-1">
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Apelido (Último Nome)</label>
-                    <input name="lastName" required className="w-full border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.lastName} disabled={!isPrivileged} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Sexo</label>
-                    <select name="sex" className="w-full border rounded-lg px-4 py-2.5 bg-white disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.sex} disabled={!isPrivileged}>
-                      <option value="M">Masculino</option>
-                      <option value="F">Feminino</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Data de Nascimento</label>
-                    <input type="date" name="birthDate" required className="w-full border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.birthDate} disabled={!isPrivileged} />
-                    {calculatedAge !== null && (
-                      <span className="text-xs text-brand-600 mt-1 font-medium">Idade calculada: {calculatedAge} anos</span>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">NUTI (NIF)</label>
-                    <input name="nuti" required className="w-full border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.nuti} placeholder="Número Único Tributário" disabled={!isPrivileged} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Dados Profissionais */}
-              <div className="bg-slate-50 p-6 rounded-lg border border-slate-100">
-                <h4 className="flex items-center gap-2 font-semibold text-brand-700 mb-6 text-lg">
-                  <FileText size={20} /> Dados Profissionais e Contratuais
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Departamento</label>
-                    <select 
-                        name="departmentId" 
-                        required 
-                        className="w-full border rounded-lg px-4 py-2.5 bg-white disabled:bg-slate-100 disabled:text-slate-500" 
-                        onChange={handleInputChange} 
-                        value={formData.departmentId}
-                        disabled={!isPrivileged} // Users cannot change their own dept
-                    >
-                      <option value="">Selecione...</option>
-                      {data.departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Carreira / Categoria</label>
-                    <input name="careerCategory" required className="w-full border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.careerCategory} placeholder="Ex: Técnico Superior" disabled={!isPrivileged} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Função Atual</label>
-                    <input name="role" required className="w-full border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.role} placeholder="Ex: Engenheiro de Software" disabled={!isPrivileged} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Nível Acadêmico</label>
-                    <input name="academicLevel" required className="w-full border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.academicLevel} placeholder="Ex: Licenciatura" disabled={!isPrivileged} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Regime Contratual</label>
-                    <select name="contractType" className="w-full border rounded-lg px-4 py-2.5 bg-white disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.contractType} disabled={!isPrivileged}>
-                      <option value="Efectivo">Efectivo</option>
-                      <option value="Contratado">Contratado</option>
-                      <option value="Mobilidade">Transferência (Mobilidade)</option>
-                      <option value="Destacado">Destacado</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Salário Base</label>
-                    <input type="number" name="salary" className="w-full border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.salary} disabled={!isPrivileged} />
-                  </div>
-                </div>
-
-                <div className="mt-6 pt-6 border-t border-slate-200">
-                  <div className="flex items-center gap-3 mb-2">
-                    <input 
-                      type="checkbox" 
-                      id="isLeadership" 
-                      name="isLeadership" 
-                      checked={formData.isLeadership}
-                      onChange={handleInputChange}
-                      className="w-5 h-5 text-brand-600 rounded focus:ring-brand-500"
-                      disabled={!isPrivileged}
-                    />
-                    <label htmlFor="isLeadership" className="text-base font-medium text-slate-700">Ocupa Cargo de Direção / Chefia?</label>
-                  </div>
-                  
-                  {formData.isLeadership && (
-                    <div className="mt-4 animate-fade-in max-w-md">
-                       <label className="block text-sm font-medium text-slate-700 mb-1">Designação do Cargo</label>
-                       <input name="leadershipRole" required className="w-full border border-brand-300 bg-brand-50 rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.leadershipRole} placeholder="Ex: Director de Recursos Humanos" disabled={!isPrivileged} />
+              {/* TAB: DOCUMENTS */}
+              {activeModalTab === 'documents' && (
+                  <div className="space-y-6 animate-fade-in">
+                    <p className="text-sm text-slate-500 mb-4">{isPrivileged ? 'Visualize os documentos enviados ou anexe novos arquivos.' : 'Visualize os documentos cadastrados.'}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {[
+                        { id: 'personal', label: 'Arquivo Pessoal (BI, etc)' },
+                        { id: 'academic', label: 'Arquivo Académico' },
+                        { id: 'administrative', label: 'Actos Administrativos' },
+                        { id: 'performance', label: 'Avaliação de Desempenho' },
+                        { id: 'others', label: 'Outros Documentos' },
+                    ].map((doc) => (
+                        <div key={doc.id} className="relative p-4 bg-slate-50 rounded-xl border border-slate-100 hover:border-brand-200 transition-colors">
+                            <label className="block text-xs font-bold text-slate-700 mb-3">{doc.label}</label>
+                            {/* If document exists, show view link (simulated) */}
+                            {formData.documents && formData.documents[doc.id as keyof typeof formData.documents] && (
+                                <div className="flex items-center gap-2 mb-3">
+                                    <div className="text-xs bg-green-50 text-green-700 px-3 py-2 rounded-lg border border-green-100 flex-1 flex items-center gap-2">
+                                            <FileText size={14} />
+                                            <span className="truncate max-w-[120px] font-medium">{formData.documents[doc.id as keyof typeof formData.documents]}</span>
+                                    </div>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => handleDownloadDocument(formData.documents![doc.id as keyof typeof formData.documents]!)} 
+                                        className="p-2 text-slate-500 hover:text-brand-600 bg-white border rounded-lg shadow-sm hover:shadow-md transition-all" 
+                                        title="Baixar Documento"
+                                    >
+                                        <Download size={16} />
+                                    </button>
+                                </div>
+                            )}
+                            {isPrivileged && (
+                                <input 
+                                    type="file" 
+                                    className="w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 cursor-pointer"
+                                    onChange={(e) => handleFileChange(e, doc.id)}
+                                />
+                            )}
+                        </div>
+                    ))}
                     </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Contactos */}
-              <div className="bg-slate-50 p-6 rounded-lg border border-slate-100">
-                <h4 className="flex items-center gap-2 font-semibold text-brand-700 mb-6 text-lg">
-                  <Phone size={20} /> Contactos
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Email Profissional</label>
-                    <input type="email" name="email" required className="w-full border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.email} disabled={!isPrivileged} />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Telefone / Móvel</label>
-                    <input type="tel" name="phone" className="w-full border rounded-lg px-4 py-2.5 disabled:bg-slate-100 disabled:text-slate-500" onChange={handleInputChange} value={formData.phone} disabled={!isPrivileged} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Documentos */}
-              <div className="bg-slate-50 p-6 rounded-lg border border-slate-100">
-                <h4 className="flex items-center gap-2 font-semibold text-brand-700 mb-6 text-lg">
-                  <Upload size={20} /> Documentação (Anexos)
-                </h4>
-                <p className="text-sm text-slate-500 mb-4">{isPrivileged ? 'Visualize os documentos enviados ou anexe novos arquivos.' : 'Visualize os documentos cadastrados.'}</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-                  {[
-                    { id: 'personal', label: 'Arquivo Pessoal (BI, etc)' },
-                    { id: 'academic', label: 'Arquivo Académico' },
-                    { id: 'administrative', label: 'Actos Administrativos' },
-                    { id: 'performance', label: 'Avaliação de Desempenho' },
-                    { id: 'others', label: 'Outros Documentos' },
-                  ].map((doc) => (
-                    <div key={doc.id} className="relative">
-                      <label className="block text-xs font-medium text-slate-700 mb-2">{doc.label}</label>
-                      {/* If document exists, show view link (simulated) */}
-                      {formData.documents && formData.documents[doc.id as keyof typeof formData.documents] && (
-                          <div className="flex items-center gap-2 mb-1">
-                               <div className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded border border-green-100 flex-1 flex items-center gap-1">
-                                    <span className="truncate max-w-[100px]">{formData.documents[doc.id as keyof typeof formData.documents]}</span>
-                                    <span className="font-bold">✓</span>
-                               </div>
-                               <button 
-                                type="button" 
-                                onClick={() => handleDownloadDocument(formData.documents![doc.id as keyof typeof formData.documents]!)} 
-                                className="p-1 text-slate-500 hover:text-brand-600 bg-white border rounded shadow-sm" 
-                                title="Baixar Documento"
-                               >
-                                    <Download size={14} />
-                               </button>
-                          </div>
-                      )}
-                      {isPrivileged && (
-                        <input 
-                            type="file" 
-                            className="w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"
-                            onChange={(e) => handleFileChange(e, doc.id)}
-                        />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
+              )}
 
             </form>
 
