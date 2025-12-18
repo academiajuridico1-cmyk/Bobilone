@@ -1,20 +1,14 @@
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-export default defineConfig(({ mode }) => {
-  // Carrega variáveis de ambiente. No Vercel, elas vêm do sistema.
-  const env = loadEnv(mode, (process as any).cwd(), '');
-  
-  return {
-    plugins: [react()],
-    define: {
-      // Isso permite usar process.env.API_KEY no código do front-end
-      'process.env': JSON.stringify(env)
-    },
-    build: {
-      outDir: 'dist',
-      assetsDir: 'assets',
-      sourcemap: false,
-    }
-  };
+export default defineConfig({
+  plugins: [react()],
+  define: {
+    // Garante que o process.env não quebre o código que usa Gemini API
+    'process.env': {}
+  },
+  server: {
+    port: 3000,
+    host: true
+  }
 });
